@@ -1,0 +1,8 @@
+##################################################################################################################
+# You need to add following contents to /etc/sudoers to make sure Nagios users can execute fsck utilities properly
+##################################################################################################################
+
+User_Alias NAGIOS = nrpe,nagios 
+Cmnd_Alias NAGIOSCMD = /sbin/fsck* 
+Defaults:NAGIOS !requiretty 
+NAGIOS	ALL=(ALL)	NOPASSWD: NAGIOSCMD

@@ -1,0 +1,84 @@
+#!/bin/bash
+
+FSCK=/sbin/fsck
+
+OK=0
+WARNING=1
+CRITICAL=2
+UNKNOWN=3
+
+usage () {
+	echo "check_filesystem -t <fs_type> -d <device> [-h]"
+}
+
+fs_type_arg=0
+dev_arg=0
+
+while getopts :d:t:h opt
+do
+	case $opt in
+		h)
+		   usage
+		   exit $OK
+		;;
+		t)
+		   fs_type=$OPTARG
+		   fs_type_arg=1
+		;;
+		d)
+		   dev=$OPTARG
+		   dev_arg=1
+		;;
+	esac
+done
+
+if (( $fs_type_arg == 0 || $dev_arg == 0 ))
+then
+	usage >& 2
+	exit 99
+fi
+
+if [[ ! -e "$dev" ]]
+then
+	echo "UNKNOWN - $dev does not exist."
+	exit $UNKNOWN
+fi
+
+if [[ ! -b "$dev" ]]
+then
+	echo "UNKNOWN - $dev is not a valid block device."
+	exit $UNKNOWN
+fi
+
+sudo $FSCK -t $fs_type -n $dev > /dev/null 2>&1
+STATUS=$?
+
+if (( $STATUS == 0 ))
+then
+	echo "OK - $dev filesystem is good"
+	exit $OK
+fi
+
+if (( $STATUS == 1 ))
+then
+	echo "OK - $dev filesystem is fixed"
+	exit $OK
+fi
+
+if (( $STATUS == 4 ))
+then
+	echo "CRITICAL - $dev filesystem is corrupted"
+	exit $CRITICAL
+fi
+
+if (( $STATUS == 8 ))
+then
+	echo "UNKNOWN - $dev is in operational error"
+	exit $UNKNOWN
+fi
+
+if (( $STATUS == 16 ))
+then
+	echo "UNKNOWN - fsck usage or syntax error"
+	exit $UNKNOWN
+fi
